@@ -42,15 +42,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.venddair.eraser.ui.theme.EraserTheme
-import dev.eren.removebg.RemoveBg
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 import java.io.File
@@ -104,9 +100,8 @@ fun SelectImageMenu() {
             contentAlignment = Alignment.Center
         ) {
             ImagePicker { path ->
-                appViewModel.imagePath.update { path }
-                appViewModel.originalBitmap.update { BitmapFactory.decodeFile(path) }
-                appViewModel.imageBitmap.update { appViewModel.originalBitmap.value }
+                appViewModel.reset()
+                appViewModel.list.value += BitmapFactory.decodeFile(path)
                 Utils.navController.get()!!.navigate(Screens.EditImage.route)
             }
         }
@@ -115,8 +110,8 @@ fun SelectImageMenu() {
 
 @Composable
 fun EditMenu() {
-    val imageBitmap by appViewModel.imageBitmap.collectAsState()
-
+    //val imageBitmap by appViewModel.imageBitmap.collectAsState()
+    val list by appViewModel.list.collectAsState()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Box(
@@ -126,7 +121,7 @@ fun EditMenu() {
             contentAlignment = Alignment.Center
         ) {
             Image(
-                bitmap = imageBitmap.asImageBitmap(),
+                bitmap = list.last().asImageBitmap(),
                 contentDescription = "idk",
                 modifier = Modifier
                     .zoomable(rememberZoomState())
@@ -136,14 +131,46 @@ fun EditMenu() {
 
         ToolBar(modifier = Modifier
             .padding(innerPadding)
-            .padding(start = 10.dp, end = 10.dp, bottom = 20.dp))
+            .padding(start = 10.dp, end = 10.dp, bottom = 10.dp))
     }
 }
 
 @Composable
 fun ToolBar(modifier: Modifier = Modifier) {
-    val originalBitmap by appViewModel.originalBitmap.collectAsState()
-    val imageBitmap by appViewModel.imageBitmap.collectAsState()
+    val list by appViewModel.list.collectAsState()
+    val redoList by appViewModel.redoList.collectAsState()
+    //val originalBitmap by appViewModel.originalBitmap.collectAsState()
+    //val imageBitmap by appViewModel.imageBitmap.collectAsState()
+
+
+    Box(
+        modifier = modifier
+            .fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            if (redoList.isNotEmpty())
+                ToolbarIcon(
+                    text = "Redo",
+                    icon = ImageVector.vectorResource(R.drawable.redo_24px),
+                    onClick = {
+                        appViewModel.redo()
+                    }
+                )
+            if (list.size > 1)
+                ToolbarIcon(
+                    text = "Undo",
+                    icon = ImageVector.vectorResource(R.drawable.undo_24px),
+                    onClick =  {
+                        appViewModel.undo()
+                    }
+                )
+        }
+    }
 
     Box(
         modifier = modifier
@@ -163,12 +190,7 @@ fun ToolBar(modifier: Modifier = Modifier) {
                 text = "Auto delete",
                 icon = Icons.Rounded.AccountBox,
                 onClick = {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        RemoveBg(Utils.context.get()!!)
-                            .clearBackground(imageBitmap).collect {
-                                appViewModel.imageBitmap.value = it!!
-                            }
-                    }
+                    appViewModel.autoRemoveBg()
                 }
             )
             ToolbarIcon(
@@ -179,6 +201,10 @@ fun ToolBar(modifier: Modifier = Modifier) {
                 text = "Eraser",
                 icon = ImageVector.vectorResource(R.drawable.ink_eraser_24px)
             )
+            ToolbarIcon(
+                text = "Repair",
+                icon = ImageVector.vectorResource(R.drawable.ink_eraser_off_24px)
+            )
         }
     }
 }
@@ -187,13 +213,13 @@ fun ToolBar(modifier: Modifier = Modifier) {
 fun ToolbarIcon(text: String, icon: ImageVector, onClick: () -> Unit = {}) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 10.dp)
+            .padding(horizontal = 5.dp)
             .clickable { onClick() }
     ) {
         Icon(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .size(30.dp)
+                .size(27.dp)
                 .fillMaxHeight(),
             imageVector = icon,
             contentDescription = "",
@@ -201,7 +227,8 @@ fun ToolbarIcon(text: String, icon: ImageVector, onClick: () -> Unit = {}) {
         )
 
         Text(
-            text = text
+            text = text,
+            fontSize = 12.sp
         )
     }
 }

@@ -28,6 +28,16 @@ android {
             )
         }
     }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -37,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -53,8 +64,8 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation("net.engawapg.lib:zoomable:2.6.0")
-    //implementation("com.github.GhayasAhmad:auto-background-remover:1.0.3")
     implementation("com.github.erenalpaslan:removebg:1.0.4")
+    //implementation("com.github.GhayasAhmad:auto-background-remover:1.0.3")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
